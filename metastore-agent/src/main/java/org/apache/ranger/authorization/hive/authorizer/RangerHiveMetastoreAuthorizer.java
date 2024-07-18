@@ -113,7 +113,7 @@ public class RangerHiveMetastoreAuthorizer extends MetaStorePreEventListener {
             } else {
                 UserGroupInformation userGroupInformation = getCurrentUser();
                 LOG.debug("Got current username 2023  " + userGroupInformation);
-                user = userGroupInformation.getUserName();
+                user = userGroupInformation.getShortUserName();
                 List<String> groups = userGroupInformation.getGroups();
                 if(groups != null){
                     LOG.debug(String.format("Groups-2023: %s", groups));
