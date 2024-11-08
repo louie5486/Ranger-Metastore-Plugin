@@ -1,6 +1,7 @@
 {
 	"id":3,
 	"name": "hive",
+	"displayName": "Hadoop SQL",
 	"implClass": "org.apache.ranger.services.hive.RangerServiceHive",
 	"label": "Hive Server2",
 	"description": "Hive Server2",
@@ -141,24 +142,6 @@
 			"uiHint": "",
 			"label": "Global",
 			"description": "Global"
-		},
-		{
-			"itemId": 8,
-			"name": "index",
-			"type": "string",
-			"level": 30,
-			"parent": "table",
-			"mandatory": false,
-			"lookupSupported": true,
-			"recursiveSupported": false,
-			"excludesSupported": true,
-			"matcher": "org.apache.ranger.plugin.resourcematcher.RangerDefaultResourceMatcher",
-			"matcherOptions": { "wildCard":true, "ignoreCase":true },
-			"validationRegEx":"",
-			"validationMessage": "",
-			"uiHint":"",
-			"label": "Hive Index",
-			"description": "Hive Index"
 		}
 	],
 

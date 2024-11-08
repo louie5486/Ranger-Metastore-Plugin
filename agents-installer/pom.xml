@@ -22,9 +22,9 @@
     <description>Security Plugins Installer</description>
     <packaging>jar</packaging>
     <parent>
-        <groupId>org.apache.ranger</groupId>
         <artifactId>ranger-metastore-plugin</artifactId>
-        <version>2.1.0</version>
+    <groupId>org.apache.ranger</groupId>
+    <version>2.1.0-SNAPSHOT</version>
         <relativePath>..</relativePath>
     </parent>
     <dependencies>

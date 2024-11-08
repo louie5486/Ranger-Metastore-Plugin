@@ -16,24 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.ranger.plugin.policyevaluator;
 
-import org.apache.ranger.plugin.policyengine.RangerAccessResource;
+package org.apache.ranger.plugin.util;
 
-public interface RangerResourceAccessCache {
-    public enum LookupResult {
-        IN_MATCHED_CACHE,
-        IN_NOTMATCHED_CACHE,
-        NOT_FOUND,
-        ERROR
-    }
+public class RangerCommonConstants {
 
-    public enum CacheType {
-        MATCHED_CACHE,
-        NOTMATCHED_CACHE
-    }
+	public static final String PROP_COOKIE_NAME = "ranger.admin.cookie.name";
+	public static final String DEFAULT_COOKIE_NAME = "RANGERADMINSESSIONID";
 
-    LookupResult lookup(RangerAccessResource resource);
-
-    void add(RangerAccessResource resource, CacheType cacheType);
 }

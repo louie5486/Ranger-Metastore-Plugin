@@ -35,7 +35,6 @@ public class HiveResourceMgr {
 	private static final String  DATABASE 	  = "database";
 	private static final String  TABLE	 	  = "table";
 	private static final String  COLUMN	 	  = "column";
-	private static final String  INDEX	 	  = "index";
 
 	
 	public static Map<String, Object> connectionTest(String serviceName, Map<String, String> configs) throws Exception {
@@ -68,11 +67,9 @@ public class HiveResourceMgr {
 		List<String> 			  	databaseList = null;
 		List<String> 				tableList	 = null;
 		List<String> 				columnList	 = null;
-		List<String> 				indexList	 = null;
 		String  					databaseName = null;
 		String  					tableName	 = null;
 		String  					columnName	 = null;
-		String  					indexName	 = null;
 
 		
 		if(LOG.isDebugEnabled()) {
@@ -84,7 +81,6 @@ public class HiveResourceMgr {
 				databaseList = resourceMap.get(DATABASE);
 				tableList = resourceMap.get(TABLE);
 				columnList = resourceMap.get(COLUMN);
-				indexList = resourceMap.get(INDEX);
 				}
 				switch (resource.trim().toLowerCase()) {
 				case DATABASE:
@@ -96,9 +92,6 @@ public class HiveResourceMgr {
 				case COLUMN:
 						columnName    = userInput;
 						break;
-					case INDEX:
-						indexName    = userInput;
-						break;
 				default:
 						break;
 				}
@@ -109,7 +102,7 @@ public class HiveResourceMgr {
 				
 				if(LOG.isDebugEnabled()) {
 					LOG.debug("==> HiveResourceMgr.getHiveResources() UserInput: "+ userInput  + " configs: " + configs + " databaseList: "  + databaseList + " tableList: "
-																				  + tableList + " columnList: " + columnList + " indexList: " + indexList);
+																				  + tableList + " columnList: " + columnList );
 				}
 				
 				final HiveClient hiveClient = new HiveConnectionMgr().getHiveConnection(serviceName, serviceType, configs);
@@ -118,12 +111,10 @@ public class HiveResourceMgr {
 				final String finalDbName;
 				final String finalColName;
 				final String finalTableName;
-				final String finalIndexName  = indexName;
 				
 				final List<String> finaldatabaseList = databaseList;
 				final List<String> finaltableList 	 = tableList;
 				final List<String> finalcolumnList   = columnList;
-				final List<String> finalIndexList   = indexList;
 				
 				
 				if ( hiveClient != null) {
@@ -180,7 +171,6 @@ public class HiveResourceMgr {
 						LOG.error("Could not initiate at timedTask");
 					}
 				 }
-				 LOG.debug("finalIndexName: "+finalIndexName+" finalIndexList: "+finalIndexList);
 			  } catch (Exception e) {
 				LOG.error("Unable to get hive resources.", e);
 				throw e;
@@ -189,7 +179,7 @@ public class HiveResourceMgr {
 
 		if(LOG.isDebugEnabled()) {
 			LOG.debug("<== HiveResourceMgr.getHiveResources() UserInput: "+ userInput  + " configs: " + configs + " databaseList: "  + databaseList + " tableList: "
-																		  + tableList + " columnList: " + columnList +" indexList: "+indexList+ "Result :" + resultList );
+																		  + tableList + " columnList: " + columnList + "Result :" + resultList );
 
 		}
 		return resultList;

@@ -30,7 +30,6 @@ import org.apache.hadoop.hive.ql.security.authorization.plugin.HiveAuthzSessionC
 import org.apache.hadoop.hive.ql.session.SessionState;
 import org.apache.hadoop.hive.shims.Utils;
 import org.apache.hadoop.security.UserGroupInformation;
-import org.apache.ranger.plugin.util.AlterRequest;
 import org.apache.ranger.plugin.util.GrantRevokeRequest;
 
 import java.util.HashMap;
@@ -165,48 +164,48 @@ public class RangerHiveMetastorePrivilegeHandler extends MetaStoreEventListener 
      * @param newIndexName new index name
      * @return created AlterRequest
      */
-    private AlterRequest getHiveAlterRequest(String oldDbName, String oldTableName,
-                                             String oldIndexName,
-                                             String newDbName, String newTableName,
-                                             String newIndexName)
-            throws MetaException {
-        Pair<SessionState, UserGroupInformation> p = init();
-        UserGroupInformation ugi = p.second;
-        SessionState ss = p.first;
-        AlterRequest request = new AlterRequest();
-        request.setGrantor(ugi.getShortUserName());
-        request.setDelegateAdmin(false);
-        request.setEnableAudit(true);
-        request.setReplaceExistingPermissions(false);
-        Map<String, String> oldMapResource = new HashMap();
-        oldMapResource.put(RangerHiveResource.KEY_DATABASE, oldDbName);
-        if (oldTableName != null)
-            oldMapResource.put(RangerHiveResource.KEY_TABLE, oldTableName);
-        if (oldIndexName != null)
-            oldMapResource.put(RangerHiveResource.KEY_INDEX, oldIndexName);
-        else
-            oldMapResource.put(RangerHiveResource.KEY_COLUMN, "*");
-        request.setOldResource(oldMapResource);
-        Map<String, String> newMapResource = new HashMap();
-        newMapResource.put(RangerHiveResource.KEY_DATABASE, newDbName);
-        if (newTableName != null)
-            newMapResource.put(RangerHiveResource.KEY_TABLE, newTableName);
-        if (newIndexName != null)
-            newMapResource.put(RangerHiveResource.KEY_INDEX, newIndexName);
-        else
-            newMapResource.put(RangerHiveResource.KEY_COLUMN, "*");
-        request.setNewResource(newMapResource);
-        if (ss != null) {
-            request.setClientIPAddress(ss.getUserIpAddress());
-            request.setSessionId(ss.getSessionId());
-            //TODO check it
-//            request.setRequestData(ss.getCmd());
-            request.setRequestData(ss.getLastCommand());
-        }
-        if (ctype != null)
-            request.setClientType(ctype.toString());
-        return request;
-    }
+//     private AlterRequest getHiveAlterRequest(String oldDbName, String oldTableName,
+//                                              String oldIndexName,
+//                                              String newDbName, String newTableName,
+//                                              String newIndexName)
+//             throws MetaException {
+//         Pair<SessionState, UserGroupInformation> p = init();
+//         UserGroupInformation ugi = p.second;
+//         SessionState ss = p.first;
+//         AlterRequest request = new AlterRequest();
+//         request.setGrantor(ugi.getShortUserName());
+//         request.setDelegateAdmin(false);
+//         request.setEnableAudit(true);
+//         request.setReplaceExistingPermissions(false);
+//         Map<String, String> oldMapResource = new HashMap();
+//         oldMapResource.put(RangerHiveResource.KEY_DATABASE, oldDbName);
+//         if (oldTableName != null)
+//             oldMapResource.put(RangerHiveResource.KEY_TABLE, oldTableName);
+//         if (oldIndexName != null)
+//             oldMapResource.put(RangerHiveResource.KEY_INDEX, oldIndexName);
+//         else
+//             oldMapResource.put(RangerHiveResource.KEY_COLUMN, "*");
+//         request.setOldResource(oldMapResource);
+//         Map<String, String> newMapResource = new HashMap();
+//         newMapResource.put(RangerHiveResource.KEY_DATABASE, newDbName);
+//         if (newTableName != null)
+//             newMapResource.put(RangerHiveResource.KEY_TABLE, newTableName);
+//         if (newIndexName != null)
+//             newMapResource.put(RangerHiveResource.KEY_INDEX, newIndexName);
+//         else
+//             newMapResource.put(RangerHiveResource.KEY_COLUMN, "*");
+//         request.setNewResource(newMapResource);
+//         if (ss != null) {
+//             request.setClientIPAddress(ss.getUserIpAddress());
+//             request.setSessionId(ss.getSessionId());
+//             //TODO check it
+// //            request.setRequestData(ss.getCmd());
+//             request.setRequestData(ss.getLastCommand());
+//         }
+//         if (ctype != null)
+//             request.setClientType(ctype.toString());
+//         return request;
+//     }
 
     @Override
     public void onCreateTable(CreateTableEvent cte) throws MetaException {
@@ -225,7 +224,7 @@ public class RangerHiveMetastorePrivilegeHandler extends MetaStoreEventListener 
                         table.getTableName(), "*");
                 hivePlugin.grantAccess(request2, auditHandler);
             } catch (Exception e) {
-                hivePlugin.removeAccess(request1, auditHandler);
+                hivePlugin.revokeAccess(request1, auditHandler);
             }
         } catch (Exception e) {
             // Just a warning
@@ -242,12 +241,12 @@ public class RangerHiveMetastorePrivilegeHandler extends MetaStoreEventListener 
                 table.getTableName(), null);
         RangerHiveAuditHandler auditHandler = new RangerHiveAuditHandler();
         try {
-            hivePlugin.removeAccess(request1, auditHandler);
+            hivePlugin.revokeAccess(request1, auditHandler);
             try {
                 // For index privileges
                 GrantRevokeRequest request2 = createGrantRevokeRequest(table.getDbName(),
                         table.getTableName(), "*");
-                hivePlugin.removeAccess(request2, auditHandler);
+                hivePlugin.revokeAccess(request2, auditHandler);
             } catch (Exception e) {
                 hivePlugin.grantAccess(request1, auditHandler);
             }
@@ -267,16 +266,22 @@ public class RangerHiveMetastorePrivilegeHandler extends MetaStoreEventListener 
         Table oldTable = tableEvent.getOldTable();
         String oldDbName = oldTable.getDbName();
         String oldTableName = oldTable.getTableName();
+
+       
         // Now this is a two-step process:
         // revoke the old privileges followed by granting the new ones
-        AlterRequest request1 = getHiveAlterRequest(oldDbName, oldTableName, null,
-                newDbName, newTableName, null);
+        // AlterRequest request1 = getHiveAlterRequest(oldDbName, oldTableName, null,
+                // newDbName, newTableName, null);
         RangerHiveAuditHandler auditHandler = new RangerHiveAuditHandler();
         try {
-            hivePlugin.alterAccess(request1, auditHandler);
-            AlterRequest request2 = getHiveAlterRequest(oldDbName, oldTableName, "*",
-                    newDbName, newTableName, "*");
-            hivePlugin.alterAccess(request2, auditHandler);
+            GrantRevokeRequest request1 = createGrantRevokeRequest(oldDbName, oldTableName, null);
+            hivePlugin.revokeAccess(request1, auditHandler);
+            request1 = createGrantRevokeRequest(oldDbName, oldTableName, "*");
+            hivePlugin.revokeAccess(request1, auditHandler);
+            GrantRevokeRequest request2 = createGrantRevokeRequest(oldDbName, oldTableName, null);
+            hivePlugin.revokeAccess(request2, auditHandler);
+            request1 = createGrantRevokeRequest(newDbName, newTableName, "*");
+            hivePlugin.revokeAccess(request2, auditHandler);
         } catch (Exception e) {
             // Just a warning
             LOG.warn("Column/Index privilege alter failed.");
@@ -315,7 +320,7 @@ public class RangerHiveMetastorePrivilegeHandler extends MetaStoreEventListener 
                 null, null);
         RangerHiveAuditHandler auditHandler = new RangerHiveAuditHandler();
         try {
-            hivePlugin.removeAccess(request, auditHandler);
+            hivePlugin.revokeAccess(request, auditHandler);
         } catch (Exception e) {
             // Just a warning
             LOG.warn("Database drop failed.");
