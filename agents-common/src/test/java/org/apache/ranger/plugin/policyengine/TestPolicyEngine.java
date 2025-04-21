@@ -47,6 +47,7 @@ import org.apache.ranger.plugin.model.validation.ValidationFailureDetails;
 import org.apache.ranger.plugin.policyengine.TestPolicyEngine.PolicyEngineTestCase.TestData;
 import org.apache.ranger.plugin.policyevaluator.RangerValidityScheduleEvaluator;
 import org.apache.ranger.plugin.policyresourcematcher.RangerPolicyResourceEvaluator;
+import org.apache.ranger.plugin.service.RangerBasePlugin;
 import org.apache.ranger.plugin.util.RangerAccessRequestUtil;
 import org.apache.ranger.plugin.util.RangerRequestedResources;
 import org.apache.ranger.plugin.util.RangerRoles;
@@ -415,6 +416,13 @@ public class TestPolicyEngine {
 		runTestsFromResourceFiles(resourceFiles);
 	}
 
+	@Test
+	public void testPolicyEngine_PolicyPriority() {
+		String[] resourceFiles = {"/policyengine/test_policyengine_priority.json"};
+
+		runTestsFromResourceFiles(resourceFiles);
+	}
+
 	private void runTestsFromResourceFiles(String[] resourceNames) {
 		for(String resourceName : resourceNames) {
 			InputStream inStream = this.getClass().getResourceAsStream(resourceName);
@@ -515,8 +523,14 @@ public class TestPolicyEngine {
 
         policyEngineOptions.disableAccessEvaluationWithPolicyACLSummary = true;
 
-        pluginContext.getConfig().setSuperUsersGroups(testCase.superUsers,  testCase.superGroups);
-		pluginContext.getConfig().setAuditExcludedUsersGroupsRoles(testCase.auditExcludedUsers,  testCase.auditExcludedGroups, testCase.auditExcludedRoles);
+        setPluginConfig(pluginContext.getConfig(), ".super.users", testCase.superUsers);
+        setPluginConfig(pluginContext.getConfig(), ".super.groups", testCase.superGroups);
+        setPluginConfig(pluginContext.getConfig(), ".audit.exclude.users", testCase.auditExcludedUsers);
+        setPluginConfig(pluginContext.getConfig(), ".audit.exclude.groups", testCase.auditExcludedGroups);
+        setPluginConfig(pluginContext.getConfig(), ".audit.exclude.roles", testCase.auditExcludedRoles);
+
+        // so that setSuperUsersAndGroups(), setAuditExcludedUsersGroupsRoles() will be called on the pluginConfig
+        new RangerBasePlugin(pluginContext.getConfig());
 
         RangerPolicyEngineImpl policyEngine = new RangerPolicyEngineImpl(servicePolicies, pluginContext, roles);
 
@@ -553,7 +567,7 @@ public class TestPolicyEngine {
 				// Create a new AccessRequest
 				RangerAccessRequestImpl newRequest =
 						new RangerAccessRequestImpl(request.getResource(), request.getAccessType(),
-								request.getUser(), request.getUserGroups());
+								request.getUser(), request.getUserGroups(), null);
 
 				newRequest.setClientType(request.getClientType());
 				newRequest.setAccessTime(request.getAccessTime());
@@ -686,6 +700,10 @@ public class TestPolicyEngine {
 			}
 		}
 
+	}
+
+	private void setPluginConfig(RangerPluginConfig conf, String suffix, Set<String> value) {
+		conf.set(conf.getPropertyPrefix() + suffix, CollectionUtils.isNotEmpty(value) ? StringUtils.join(value, ',') : "");
 	}
 
 	static class PolicyEngineTestCase {

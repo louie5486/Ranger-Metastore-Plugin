@@ -254,7 +254,9 @@ public class RangerResourceTrie<T extends RangerPolicyResourceEvaluator> {
             TRACE_LOG.trace("==> copyTrieSubtree(" + sb + ")");
         }
         TrieNode<T> dest = new TrieNode<>(source.str);
-        dest.setParent(parent);
+        if (parent != null) {
+            parent.addChild(dest);
+        }
 
         synchronized (source.children) {
             dest.isSetup = source.isSetup;
@@ -918,9 +920,11 @@ public class RangerResourceTrie<T extends RangerPolicyResourceEvaluator> {
         boolean removeWildcardEvaluator(U evaluator) {
             if (CollectionUtils.isNotEmpty(wildcardEvaluators) && wildcardEvaluators.contains(evaluator)) {
                 undoSetup();
-                wildcardEvaluators.remove(evaluator);
-                if (CollectionUtils.isEmpty(wildcardEvaluators)) {
-                    wildcardEvaluators = null;
+                if (CollectionUtils.isNotEmpty(wildcardEvaluators)) {
+                    wildcardEvaluators.remove(evaluator);
+                    if (CollectionUtils.isEmpty(wildcardEvaluators)) {
+                        wildcardEvaluators = null;
+                    }
                 }
                 return true;
             } else {

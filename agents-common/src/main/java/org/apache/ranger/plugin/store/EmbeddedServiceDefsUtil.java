@@ -22,6 +22,7 @@ package org.apache.ranger.plugin.store;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
@@ -48,7 +49,7 @@ public class EmbeddedServiceDefsUtil {
 
 
 	// following servicedef list should be reviewed/updated whenever a new embedded service-def is added
-	public static final String DEFAULT_BOOTSTRAP_SERVICEDEF_LIST = "tag,hdfs,hbase,hive,kms,knox,storm,yarn,kafka,solr,atlas,nifi,nifi-registry,sqoop,kylin,elasticsearch,presto,ozone,kudu";
+	public static final String DEFAULT_BOOTSTRAP_SERVICEDEF_LIST = "tag,hdfs,hbase,hive,kms,knox,storm,yarn,kafka,solr,atlas,nifi,nifi-registry,sqoop,kylin,elasticsearch,presto,ozone,kudu,schema-registry";
 	private static final String PROPERTY_SUPPORTED_SERVICE_DEFS = "ranger.supportedcomponents";
 	private Set<String> supportedServiceDefs;
 	public static final String EMBEDDED_SERVICEDEF_TAG_NAME  = "tag";
@@ -257,6 +258,18 @@ public class EmbeddedServiceDefsUtil {
 			serviceDef=loadEmbeddedServiceDef(defType);
 		}
 		return serviceDef;
+	}
+
+	public static boolean isRecursiveEnabled(final RangerServiceDef rangerServiceDef, final String resourceDefName) {
+		boolean ret = false;
+		List<RangerServiceDef.RangerResourceDef>  resourceDefs = rangerServiceDef.getResources();
+		for(RangerServiceDef.RangerResourceDef resourceDef:resourceDefs) {
+			if (resourceDefName.equals(resourceDef.getName())) {
+				ret =  resourceDef.getRecursiveSupported();
+				break;
+			}
+		}
+		return ret;
 	}
 
 	private long getId(RangerServiceDef serviceDef) {

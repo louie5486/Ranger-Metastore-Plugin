@@ -35,8 +35,8 @@ public enum ValidationErrorCode {
     SERVICE_VALIDATION_ERR_INVALID_SERVICE_NAME(1006, "Missing service name"),
     SERVICE_VALIDATION_ERR_SERVICE_NAME_CONFICT(1007, "Duplicate service name: name=[{0}]"),
     SERVICE_VALIDATION_ERR_SERVICE_DISPLAY_NAME_CONFICT(3051,"Display name [{0}] is already used by service [{1}]"),
-    SERVICE_VALIDATION_ERR_SPECIAL_CHARACTERS_SERVICE_NAME(3031, "Name should not start with space, it should be less than 256 characters and special characters are not allowed(except _ - and space). : name=[{0}]"),
-    SERVICE_VALIDATION_ERR_SPECIAL_CHARACTERS_SERVICE_DISPLAY_NAME(3050, "Invalid display name [{0}]. It should be not be longer than 256 characters, should not start with space, and should not include special characters (except underscore, hyphen and space)"),
+    SERVICE_VALIDATION_ERR_SPECIAL_CHARACTERS_SERVICE_NAME(3031, "Invalid service name=[{0}]. It should not be longer than 256 characters and special characters are not allowed (except underscore and hyphen)"),
+    SERVICE_VALIDATION_ERR_SPECIAL_CHARACTERS_SERVICE_DISPLAY_NAME(3050, "Invalid service display name [{0}]. It should not be longer than 256 characters, should not start with space, and should not include special characters (except underscore, hyphen and space)"),
     SERVICE_VALIDATION_ERR_ID_NAME_CONFLICT(1008, "Duplicate service name: name=[{0}], id=[{1}]"),
     SERVICE_VALIDATION_ERR_MISSING_SERVICE_DEF(1009, "Missing service def"),
     SERVICE_VALIDATION_ERR_INVALID_SERVICE_DEF(1010, "Service def not found: service-def-name=[{0}]"),
@@ -104,6 +104,7 @@ public enum ValidationErrorCode {
     POLICY_VALIDATION_ERR_NONEXISTANT_ZONE_NAME(3033, "Non-existent Zone name={0} in policy create"),
     POLICY_VALIDATION_ERR_SERVICE_NOT_ASSOCIATED_TO_ZONE(3048, "Service name = {0} is not associated to Zone name = {1}"),
     POLICY_VALIDATION_ERR_UNSUPPORTED_POLICY_ITEM_TYPE(3049, "Deny or deny-exceptions are not supported if policy has isDenyAllElse flag set to true"),
+    POLICY_VALIDATION_ERR_INVALID_SERVICE_TYPE(4009," Invalid service type [{0}] provided for service [{1}]"),
 
     // SECURITY_ZONE Validations
     SECURITY_ZONE_VALIDATION_ERR_UNSUPPORTED_ACTION(3034, "Internal error: unsupported action[{0}]; isValid() is only supported for DELETE"),

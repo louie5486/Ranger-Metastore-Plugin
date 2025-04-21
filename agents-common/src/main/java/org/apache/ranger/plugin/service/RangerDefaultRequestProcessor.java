@@ -47,11 +47,19 @@ public class RangerDefaultRequestProcessor implements RangerAccessRequestProcess
         setResourceServiceDef(request);
         if (request instanceof RangerAccessRequestImpl) {
             RangerAccessRequestImpl reqImpl = (RangerAccessRequestImpl) request;
-            reqImpl.extractAndSetClientIPAddress(policyEngine.getUseForwardedIPAddress(), policyEngine.getTrustedProxyAddresses());
+
+            if (reqImpl.getClientIPAddress() == null) {
+                reqImpl.extractAndSetClientIPAddress(policyEngine.getUseForwardedIPAddress(), policyEngine.getTrustedProxyAddresses());
+            }
 
             if(policyEngine.getPluginContext() != null) {
-                reqImpl.setClusterName(policyEngine.getPluginContext().getClusterName());
-                reqImpl.setClusterType(policyEngine.getPluginContext().getClusterType());
+                if (reqImpl.getClusterName() == null) {
+                    reqImpl.setClusterName(policyEngine.getPluginContext().getClusterName());
+                }
+
+                if (reqImpl.getClusterType() == null) {
+                    reqImpl.setClusterType(policyEngine.getPluginContext().getClusterType());
+                }
             }
         }
 
@@ -63,7 +71,10 @@ public class RangerDefaultRequestProcessor implements RangerAccessRequestProcess
             RangerAccessRequestUtil.setOwnerInContext(request.getContext(), owner);
         }
 
-        Set<String> roles = policyEngine.getPluginContext().getAuthContext().getRolesForUserAndGroups(request.getUser(), request.getUserGroups());
+        Set<String> roles = request.getUserRoles();
+        if (CollectionUtils.isEmpty(roles)) {
+            roles = policyEngine.getPluginContext().getAuthContext().getRolesForUserAndGroups(request.getUser(), request.getUserGroups());
+        }
 
         if (CollectionUtils.isNotEmpty(roles)) {
             RangerAccessRequestUtil.setCurrentUserRolesInContext(request.getContext(), roles);

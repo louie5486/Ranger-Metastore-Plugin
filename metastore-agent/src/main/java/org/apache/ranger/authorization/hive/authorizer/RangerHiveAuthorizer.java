@@ -2464,7 +2464,7 @@ public class RangerHiveAuthorizer extends RangerHiveAuthorizerBase {
 		}
 
 		RangerHiveResource hiveResource = RangerHiveAuthorizer.createHiveResource(hiveObject);
-		RangerAccessRequestImpl request = new RangerAccessRequestImpl(hiveResource, RangerPolicyEngine.ANY_ACCESS, null, null);
+		RangerAccessRequestImpl request = new RangerAccessRequestImpl(hiveResource, RangerPolicyEngine.ANY_ACCESS, null, null,null);
 
 		ret = hivePlugin.getResourceACLs(request);
 

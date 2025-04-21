@@ -45,6 +45,7 @@ import org.apache.ranger.plugin.model.RangerServiceDef;
 import org.apache.ranger.plugin.model.RangerServiceDef.RangerAccessTypeDef;
 import org.apache.ranger.plugin.model.RangerValiditySchedule;
 import org.apache.ranger.plugin.policyengine.RangerAccessRequest;
+import org.apache.ranger.plugin.policyengine.RangerAccessRequestImpl;
 import org.apache.ranger.plugin.policyengine.RangerAccessResource;
 import org.apache.ranger.plugin.policyengine.RangerAccessResult;
 import org.apache.ranger.plugin.policyengine.RangerPolicyEngine;
@@ -608,7 +609,7 @@ public class RangerDefaultPolicyEvaluator extends RangerAbstractPolicyEvaluator 
 			if (LOG.isDebugEnabled()) {
 				LOG.debug("Using ACL Summary for access evaluation. PolicyId=[" + getId() + "]");
 			}
-			Integer accessResult = lookupPolicyACLSummary(request.getUser(), request.getUserGroups(), request.getAccessType());
+			Integer accessResult = lookupPolicyACLSummary(request.getUser(), request.getUserGroups(), request.getUserRoles(),  request.getAccessType());
 			if (accessResult != null) {
 				updateAccessResult(result, matchType, accessResult.equals(RangerPolicyEvaluator.ACCESS_ALLOWED), null);
 			}
@@ -631,7 +632,7 @@ public class RangerDefaultPolicyEvaluator extends RangerAbstractPolicyEvaluator 
 		}
 	}
 
-	private Integer lookupPolicyACLSummary(String user, Set<String> userGroups, String accessType) {
+	private Integer lookupPolicyACLSummary(String user, Set<String> userGroups, Set<String> userRoles, String accessType) {
 		Integer accessResult = null;
 
 		Map<String, PolicyACLSummary.AccessResult> accesses = aclSummary.getUsersAccessInfo().get(user);
@@ -649,6 +650,16 @@ public class RangerDefaultPolicyEvaluator extends RangerAbstractPolicyEvaluator 
 				accessResult = lookupAccess(userGroup, accessType, accesses);
 				if (accessResult != null) {
 					break;
+				}
+			}
+
+			if (userRoles !=null) {
+				for (String userRole : userRoles) {
+					accesses = aclSummary.getRolesAccessInfo().get(userRole);
+					accessResult = lookupAccess(userRole, accessType, accesses);
+					if (accessResult != null) {
+						break;
+					}
 				}
 			}
 		}
@@ -675,44 +686,36 @@ public class RangerDefaultPolicyEvaluator extends RangerAbstractPolicyEvaluator 
 		return ret;
 	}
 
-	private Integer getAccessResultForAnyAccess(Map<String, PolicyACLSummary.AccessResult> accessses) {
-		Integer ret = null;
+	private Integer getAccessResultForAnyAccess(Map<String, PolicyACLSummary.AccessResult> accesses) {
+		final Integer ret;
 
 		int allowedAccessCount = 0;
 		int deniedAccessCount = 0;
-		int undeterminedAccessCount = 0;
-		int accessesSize = 0;
 
-		for (Map.Entry<String, PolicyACLSummary.AccessResult> entry : accessses.entrySet()) {
+		for (Map.Entry<String, PolicyACLSummary.AccessResult> entry : accesses.entrySet()) {
 			if (StringUtils.equals(entry.getKey(), RangerPolicyEngine.ADMIN_ACCESS)) {
-				// Dont count admin access if present
+				// Don't count admin access if present
 				continue;
 			}
 			PolicyACLSummary.AccessResult accessResult = entry.getValue();
 			if (accessResult.getResult() == RangerPolicyEvaluator.ACCESS_ALLOWED) {
 				allowedAccessCount++;
+				break;
 			} else if (accessResult.getResult() == RangerPolicyEvaluator.ACCESS_DENIED) {
 				deniedAccessCount++;
-			} else if (accessResult.getResult() == RangerPolicyEvaluator.ACCESS_UNDETERMINED && !accessResult.getHasSeenDeny()) {
-			    undeterminedAccessCount++;
 			}
-			accessesSize++;
 		}
 
-		int accessTypeCount = getServiceDef().getAccessTypes().size();
+		if (allowedAccessCount > 0) {
+			// At least one access allowed
+			ret = RangerPolicyEvaluator.ACCESS_ALLOWED;
+		} else if (deniedAccessCount == getServiceDef().getAccessTypes().size()) {
+			// All accesses explicitly denied
+			ret = RangerPolicyEvaluator.ACCESS_DENIED;
+		} else {
+			ret = null;
+		}
 
-		if (accessTypeCount == accessesSize) {
-			// All permissions are represented
-			if (deniedAccessCount > 0 || undeterminedAccessCount == accessTypeCount) {
-				// at least one is denied or all are undetermined
-				ret = RangerPolicyEvaluator.ACCESS_DENIED;
-			}
-		}
-		if (ret == null) {
-			if (allowedAccessCount > 0 || undeterminedAccessCount > 0) {
-				ret = RangerPolicyEvaluator.ACCESS_ALLOWED;
-			}
-		}
 		return ret;
 	}
 
@@ -810,7 +813,7 @@ public class RangerDefaultPolicyEvaluator extends RangerAbstractPolicyEvaluator 
 				LOG.debug("Using ACL Summary for checking if access is allowed. PolicyId=[" + getId() +"]");
 			}
 
-			Integer accessResult = lookupPolicyACLSummary(user, userGroups, accessType);
+			Integer accessResult = lookupPolicyACLSummary(user, userGroups, roles, accessType);
 			if (accessResult != null && accessResult.equals(RangerPolicyEvaluator.ACCESS_ALLOWED)) {
 				ret = true;
 			}
@@ -1092,11 +1095,8 @@ public class RangerDefaultPolicyEvaluator extends RangerAbstractPolicyEvaluator 
 
 		switch (policyType) {
 			case RangerPolicy.POLICY_TYPE_ACCESS: {
-				ret = getMatchingPolicyItem(request, denyEvaluators, denyExceptionEvaluators);
+				ret = getMatchingPolicyItemForAccessPolicy(request, result);
 
-				if(ret == null && !result.getIsAccessDetermined()) { // a deny policy could have set isAllowed=true, but in such case it wouldn't set isAccessDetermined=true
-					ret = getMatchingPolicyItem(request, allowEvaluators, allowExceptionEvaluators);
-				}
 				break;
 			}
 			case RangerPolicy.POLICY_TYPE_DATAMASK: {
@@ -1109,6 +1109,69 @@ public class RangerDefaultPolicyEvaluator extends RangerAbstractPolicyEvaluator 
 			}
 			default:
 				break;
+		}
+
+		return ret;
+	}
+
+	protected RangerPolicyItemEvaluator getMatchingPolicyItemForAccessPolicy(RangerAccessRequest request, RangerAccessResult result) {
+		RangerPolicyItemEvaluator ret = null;
+
+		if (request.isAccessTypeAny()) {
+			RangerPolicyItemEvaluator denyingPolicyItemEvaluator = null;
+			int                       deniedAccessesCount        = 0;
+			int                       accessDefsCount            = 0;
+
+			List<RangerAccessTypeDef> allAccessDefs = getServiceDef().getAccessTypes();
+
+			for (RangerAccessTypeDef accessTypeDef : allAccessDefs) {
+				RangerAccessRequestImpl newRequest = new RangerAccessRequestImpl();
+				newRequest.setResource(request.getResource());
+				newRequest.setUser(request.getUser());
+				newRequest.setUserGroups(request.getUserGroups());
+				newRequest.setUserRoles(request.getUserRoles());
+				newRequest.setForwardedAddresses(request.getForwardedAddresses());
+				newRequest.setAccessTime(request.getAccessTime());
+				newRequest.setRemoteIPAddress(request.getRemoteIPAddress());
+				newRequest.setClientType(request.getClientType());
+				newRequest.setAction(request.getAction());
+				newRequest.setRequestData(request.getRequestData());
+				newRequest.setSessionId(request.getSessionId());
+				newRequest.setContext(request.getContext());
+				newRequest.setClusterName(request.getClusterName());
+
+				newRequest.setAccessType(accessTypeDef.getName());
+
+				ret = getMatchingPolicyItemForAccessPolicyForSpecificAccess(newRequest, result);
+
+				if (ret != null) {
+					if (ret.getPolicyItemType() == RangerPolicyItemEvaluator.POLICY_ITEM_TYPE_ALLOW) {
+						break;
+					} else if (ret.getPolicyItemType() == RangerPolicyItemEvaluator.POLICY_ITEM_TYPE_DENY) {
+						if (denyingPolicyItemEvaluator == null) {
+							denyingPolicyItemEvaluator = ret;
+						}
+						ret = null;
+						deniedAccessesCount++;
+					}
+				}
+				accessDefsCount++;
+			}
+			if (ret == null && denyingPolicyItemEvaluator != null && deniedAccessesCount == accessDefsCount) {
+				ret = denyingPolicyItemEvaluator;
+			}
+		} else {
+			ret = getMatchingPolicyItemForAccessPolicyForSpecificAccess(request, result);
+		}
+
+		return ret;
+	}
+
+	protected RangerPolicyItemEvaluator getMatchingPolicyItemForAccessPolicyForSpecificAccess(RangerAccessRequest request, RangerAccessResult result) {
+		RangerPolicyItemEvaluator ret = getMatchingPolicyItem(request, denyEvaluators, denyExceptionEvaluators);
+
+		if(ret == null && !result.getIsAccessDetermined()) { // a deny policy could have set isAllowed=true, but in such case it wouldn't set isAccessDetermined=true
+			ret = getMatchingPolicyItem(request, allowEvaluators, allowExceptionEvaluators);
 		}
 
 		return ret;
