@@ -28,7 +28,9 @@ mvn clean compile package install assembly:assembly -Dmaven.test.skip=true
 ~~~~
 
 skip test
+~~~~
 mvn compile package install assembly:assembly -Dmaven.test.skip=true -Dpmd.skip=true -Dcheckstyle.skip=true -Drat.skip=true
+~~~~
 
 As a result this will create a .tar.gz file 
 
